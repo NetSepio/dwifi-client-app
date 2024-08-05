@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WiFi Connector</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #0e0e0e;
+            color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        h1 {
+            color: #00f0f0;
+            text-align: center;
+            margin: 20px 0;
+            font-size: 2.5em;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        button {
+            background-color: #00bcd4;
+            color: #fff;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s, box-shadow 0.3s;
+            font-size: 1.1em;
+            box-shadow: 0 4px 8px rgba(0, 188, 212, 0.5);
+        }
+        button:hover {
+            background-color: #0097a7;
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 188, 212, 0.7);
+        }
+        button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: auto;
+            padding: 20px;
+        }
+        .current-wifi {
+            margin: 20px 0;
+            font-size: 1.3em;
+            color: #00e5ff;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border-radius: 15px;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border: 1px solid #333;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        th {
+            background-color: #222;
+            color: #00e5ff;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #1a1a1a;
+        }
+        tr:hover {
+            background-color: #333;
+            transform: translateY(-2px);
+        }
+        .connected {
+            background-color: #00bfae !important;
+            color: #fff;
+        }
+        .loader {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 8px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top: 8px solid #00bcd4;
+            width: 80px;
+            height: 80px;
+            animation: spin 1.5s linear infinite;
+        }
+
+        #wallet-info {
+    background-color: #1c1c1c;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    margin: 20px 0;
+}
+
+.input-group {
+    margin-bottom: 15px;
+}
+
+.input-group label {
+    display: block;
+    color: #00e5ff;
+    font-size: 1.1em;
+    margin-bottom: 5px;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    background-color: #2a2a2a;
+    color: #f0f0f0;
+    font-size: 1em;
+    transition: border-color 0.3s, background-color 0.3s;
+}
+
+.input-group input:focus {
+    border-color: #00bcd4;
+    background-color: #333;
+    outline: none;
+}
+
+button {
+    background-color: #00bcd4;
+    color: #fff;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.3s, box-shadow 0.3s;
+    font-size: 1.1em;
+    box-shadow: 0 4px 8px rgba(0, 188, 212, 0.5);
+}
+
+button:hover {
+    background-color: #0097a7;
+    transform: scale(1.05);
+    box-shadow: 0 6px 12px rgba(0, 188, 212, 0.7);
+}
+
+button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Erebrus D-Wifi</h1>
+
+        <div id="wallet-info">
+            <div class="input-group">
+                <label for="wallet-address">Wallet Address</label>
+                <input type="text" id="wallet-address" placeholder="Enter your wallet address">
+            </div>
+            <div class="input-group">
+                <label for="private-key">Private Key</label>
+                <input type="password" id="private-key" placeholder="Enter your private key">
+            </div>
+            <button onclick="saveWalletInfo()">Save Wallet Info</button>
+        </div>
+        
+
+        <button onclick="scanNetworks()">Scan Nearby Networks</button>
+
+        <div class="current-wifi">
+            Connected to: <span id="connected-wifi">None</span>
+            <button id="disconnect-pay-btn" onclick="disconnectAndPay()" style="display:none;">Disconnect & Pay</button>
+        </div>
+
+        <table id="wifi-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>SSID</th>
+                    <th>Signal Strength</th>
+                    <th>Gateway</th>
+                    <th>Price per Min</th>
+                    <th>Chain</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="wifi-list"></tbody>
+        </table>
+        <div id="payment-info" style="display:none; margin-top: 20px;">
+            <h2>Payment Information</h2>
+            <p><strong>Transaction Hash:</strong> <span id="tx-hash"></span></p>
+            <p><strong>Mined Hash:</strong> <span id="mined-hash"></span></p>
+        </div>
+        
+        <div id="loader" class="loader hidden"></div>
+    </div>
+
+    <script>
+        let walletAddress = '';
+        let privateKey = '';
+        let connectedSSID = '';
+
+        function saveWalletInfo() {
+            walletAddress = document.getElementById('wallet-address').value;
+            privateKey = document.getElementById('private-key').value;
+            if (walletAddress && privateKey) {
+                alert('Wallet info saved!');
+            } else {
+                alert('Please enter both wallet address and private key.');
+            }
+        }
+
+        function scanNetworks() {
+            document.getElementById('loader').classList.remove('hidden');
+            fetch('/scan-nearby-networks')
+                .then(response => response.json())
+                .then(networks => {
+                    console.log("Networks received:", networks); // Debugging line
+                    const wifiList = document.getElementById('wifi-list');
+                    wifiList.innerHTML = '';
+                    networks.forEach((network, index) => {
+                        const row = wifiList.insertRow();
+                        row.insertCell(0).textContent = index + 1;
+                        row.insertCell(1).textContent = network.ssid;
+                        row.insertCell(2).textContent = network.signalStrength;
+                        row.insertCell(3).textContent = network.gateway || '-';
+                        row.insertCell(4).textContent = network.price_per_min || '-';
+                        row.insertCell(5).textContent = network.chain || '-';
+                        const actionCell = row.insertCell(6);
+                        const actionButton = document.createElement('button');
+                        actionButton.textContent = network.ssid === connectedSSID ? 'Connected' : 'Connect';
+                        actionButton.onclick = () => connectToNetwork(network.ssid);
+                        actionButton.disabled = network.ssid === connectedSSID;
+                        actionCell.appendChild(actionButton);
+                    });
+                    document.getElementById('loader').classList.add('hidden');
+                })
+                .catch(error => {
+                    console.error("Error fetching networks:", error); // Debugging line
+                    document.getElementById('loader').classList.add('hidden');
+                });
+        }
+
+        function connectToNetwork(ssid) {
+            if (!walletAddress || !privateKey) {
+                alert('Please save your wallet info first.');
+                return;
+            }
+            fetch('/connect-wifi', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ ssid: ssid }),
+            })
+            .then(response => response.text())
+            .then(result => {
+                alert(result);
+                updateCurrentWifi();
+            });
+        }
+
+        function updateCurrentWifi() {
+            fetch('/current-wifi')
+                .then(response => response.json())
+                .then(data => {
+                    connectedSSID = data.ssid;
+                    document.getElementById('connected-wifi').textContent = connectedSSID || 'None';
+                    document.getElementById('disconnect-pay-btn').style.display = connectedSSID ? 'inline' : 'none';
+                    updateConnectButtons();
+                });
+        }
+
+        function updateConnectButtons() {
+            const buttons = document.querySelectorAll('#wifi-list button');
+            buttons.forEach(button => {
+                const row = button.closest('tr');
+                const ssid = row.cells[1].textContent;
+                if (ssid === connectedSSID) {
+                    button.textContent = 'Connected';
+                    button.disabled = true;
+                } else {
+                    button.textContent = 'Connect';
+                    button.disabled = false;
+                    button.onclick = () => connectToNetwork(ssid);
+                }
+            });
+        }
+
+        function disconnectAndPay() {
+    if (!connectedSSID) {
+        alert('Not connected to any network.');
+        return;
+    }
+    fetch('/disconnect-and-pay', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            ssid: connectedSSID,
+            walletAddress: walletAddress,
+            privateKey: privateKey
+        }),
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.message) {
+            alert(result.message);
+            updateCurrentWifi();
+
+            // Display the transaction information
+            document.getElementById('payment-info').style.display = 'block';
+            document.getElementById('tx-hash').textContent = result.txHash;
+            document.getElementById('mined-hash').textContent = result.minedHash;
+        } else {
+            alert('Error: ' + JSON.stringify(result));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+
+        window.onload = function() {
+            updateCurrentWifi();
+        };
+    </script>
+</body>
+</html>
