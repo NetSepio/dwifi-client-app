@@ -344,7 +344,6 @@ type DeviceInfo struct {
 	Manufacturer       string        `json:"manufacturer"`
 	InterfaceName      string        `json:"interfaceName"`
 	HostSSID           string        `json:"hostSSID"`
-	ChainName          string        `json:"chain_name"`
 }
 
 type WiFiData struct {
@@ -355,6 +354,7 @@ type WiFiData struct {
 	UpdatedAt   time.Time    `json:"updated_at"`
 	Password    string       `json:"password"`
 	PricePerMin string       `json:"price_per_min"`
+	ChainName   string       `json:"chain_name"`
 }
 
 type NearbyNetwork struct {
@@ -431,7 +431,8 @@ func ScanNearbyNetworks() ([]NearbyNetwork, error) {
 				if status.HostSSID == network.SSID {
 					networks[i].Gateway = data.Gateway
 					networks[i].PricePerMin = data.PricePerMin
-					networks[i].ChainName = status.ChainName
+					networks[i].ChainName = data.ChainName
+
 				}
 			}
 		}
@@ -441,13 +442,12 @@ func ScanNearbyNetworks() ([]NearbyNetwork, error) {
 }
 
 func getCurrentWiFi(w http.ResponseWriter, r *http.Request) {
-	cmd := exec.Command("nmcli", "-t", "-f", "NAME", "connection", "show", "--active")
+	cmd := exec.Command("bash", "-c", "nmcli -t -f NAME connection show --active | grep -v '^lo$'")
 	output, err := cmd.Output()
 	if err != nil {
-		log.Printf("Failed to get current WiFi connection: %v", err)
-		http.Error(w, "Failed to get current WiFi connection", http.StatusInternalServerError)
-		return
+		log.Fatalf("cmd.Run() failed with %s\n", err)
 	}
+	fmt.Printf("Active connection: %s\n", output)
 
 	ssid := strings.TrimSpace(string(output))
 	response := struct {
@@ -564,8 +564,8 @@ func handleWebSocket(ws *websocket.Conn) {
 			if !found {
 				wifiDataList = append(wifiDataList, newWiFiData)
 			}
-			color.Yellow("Received WiFi data for ID: %d, SSID: %s, Gateway: %s,Price_per_min: %s, Chain: %s",
-				newWiFiData.ID, newWiFiData.Status[0].HostSSID, newWiFiData.Gateway, newWiFiData.PricePerMin, newWiFiData.Status[0].ChainName)
+			// color.Yellow("Received WiFi data for ID: %d, SSID: %s, Gateway: %s,Price_per_min: %s, Chain: %s",
+			// newWiFiData.ID, newWiFiData.Status[0].HostSSID, newWiFiData.Gateway, newWiFiData.PricePerMin, newWiFiData.ChainName)
 			mu.Unlock()
 
 			buffer = ""

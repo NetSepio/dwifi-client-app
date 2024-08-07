@@ -100,6 +100,7 @@
     padding: 20px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     margin: 20px 0;
+    max-width: 100%;
 }
 
 .input-group {
@@ -114,7 +115,7 @@
 }
 
 .input-group input {
-    width: 100%;
+    width: 96%;
     padding: 12px;
     border: 1px solid #333;
     border-radius: 8px;
@@ -157,12 +158,50 @@ button:disabled {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+
+
+.current-wifi-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #1c1c1c;
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    margin-top: 20px; /* Add this line */
+}
+
+.current-wifi {
+    margin: 0; /* Update this line */
+}
+#payment-info {
+        background-color: #1c1c1c;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        margin: 20px 0;
+        color: #f0f0f0;
+    }
+
+    #payment-info h2 {
+        color: #00e5ff;
+        margin-bottom: 10px;
+    }
+
+    #payment-info p {
+        margin: 5px 0;
+    }
+
+    #payment-info strong {
+        color: #00bcd4;
+    }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Erebrus D-Wifi</h1>
-
+    
         <div id="wallet-info">
             <div class="input-group">
                 <label for="wallet-address">Wallet Address</label>
@@ -174,15 +213,17 @@ button:disabled {
             </div>
             <button onclick="saveWalletInfo()">Save Wallet Info</button>
         </div>
-        
-
+        <br/>
+        <br/>
         <button onclick="scanNetworks()">Scan Nearby Networks</button>
-
-        <div class="current-wifi">
-            Connected to: <span id="connected-wifi">None</span>
+    
+        <div class="current-wifi-container">
+            <div class="current-wifi">
+                Connected to: <span id="connected-wifi">None</span>
+            </div>
             <button id="disconnect-pay-btn" onclick="disconnectAndPay()" style="display:none;">Disconnect & Pay</button>
         </div>
-
+    
         <table id="wifi-table">
             <thead>
                 <tr>
@@ -205,6 +246,7 @@ button:disabled {
         
         <div id="loader" class="loader hidden"></div>
     </div>
+    
 
     <script>
         let walletAddress = '';
@@ -222,35 +264,40 @@ button:disabled {
         }
 
         function scanNetworks() {
-            document.getElementById('loader').classList.remove('hidden');
-            fetch('/scan-nearby-networks')
-                .then(response => response.json())
-                .then(networks => {
-                    console.log("Networks received:", networks); // Debugging line
-                    const wifiList = document.getElementById('wifi-list');
-                    wifiList.innerHTML = '';
-                    networks.forEach((network, index) => {
-                        const row = wifiList.insertRow();
-                        row.insertCell(0).textContent = index + 1;
-                        row.insertCell(1).textContent = network.ssid;
-                        row.insertCell(2).textContent = network.signalStrength;
-                        row.insertCell(3).textContent = network.gateway || '-';
-                        row.insertCell(4).textContent = network.price_per_min || '-';
-                        row.insertCell(5).textContent = network.chain || '-';
+    document.getElementById('loader').classList.remove('hidden');
+    fetch('/scan-nearby-networks')
+        .then(response => response.json())
+        .then(networks => {
+            console.log("Networks received:", networks); // Debugging line
+            const wifiList = document.getElementById('wifi-list');
+            wifiList.innerHTML = '';
+            networks.forEach((network, index) => {
+                // Only display networks with a non-empty price_per_min value
+                    const row = wifiList.insertRow();
+                    row.insertCell(0).textContent = index + 1;
+                    row.insertCell(1).textContent = network.ssid;
+                    row.insertCell(2).textContent = network.signalStrength;
+                    row.insertCell(3).textContent = network.gateway || '-';
+                    row.insertCell(4).textContent = network.price_per_min || '-';
+                    row.insertCell(5).textContent = network.chain_name || '-';
+                    if (network.price_per_min) {
                         const actionCell = row.insertCell(6);
                         const actionButton = document.createElement('button');
                         actionButton.textContent = network.ssid === connectedSSID ? 'Connected' : 'Connect';
                         actionButton.onclick = () => connectToNetwork(network.ssid);
                         actionButton.disabled = network.ssid === connectedSSID;
                         actionCell.appendChild(actionButton);
-                    });
-                    document.getElementById('loader').classList.add('hidden');
-                })
-                .catch(error => {
-                    console.error("Error fetching networks:", error); // Debugging line
-                    document.getElementById('loader').classList.add('hidden');
-                });
-        }
+                    }  else{
+                        row.insertCell(6).textContent =  '-';
+                    }
+            });
+            document.getElementById('loader').classList.add('hidden');
+        })
+        .catch(error => {
+            console.error("Error fetching networks:", error); // Debugging line
+            document.getElementById('loader').classList.add('hidden');
+        });
+}
 
         function connectToNetwork(ssid) {
             if (!walletAddress || !privateKey) {
@@ -340,3 +387,4 @@ button:disabled {
     </script>
 </body>
 </html>
+
